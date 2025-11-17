@@ -1,4 +1,4 @@
-Source: ros-noetic-fixposition-sdk-ros1
+Source: ros-noetic-fpsdk_ros1
 Section: misc
 Priority: optional
 Maintainer: Fixposition AG <support@fixposition.com>
@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 9.0.0),
 Homepage: 
 Standards-Version: 3.9.2
 
-Package: ros-noetic-fixposition-sdk-ros1
+Package: ros-noetic-fpsdk_ros1
 Architecture: any
 Depends: ${shlibs:Depends},
     ${misc:Depends},
