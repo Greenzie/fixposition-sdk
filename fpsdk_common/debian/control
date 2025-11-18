@@ -7,10 +7,9 @@ Build-Depends: debhelper (>= 9.0.0),
     libboost-stacktrace-dev,
     libyaml-cpp-dev,
     libeigen3-dev,
-    zlib-dev,
-    libnlohmann-json-dev,
-    libthreading-dev,
-    libpkgconf-dev
+    zlib1g-dev,
+    nlohmann-json3-dev,
+    pkg-config
 Homepage: 
 Standards-Version: 3.9.2
 
@@ -21,8 +20,7 @@ Depends: ${shlibs:Depends},
     libboost-stacktrace-dev,
     libyaml-cpp-dev,
     libeigen3-dev,
-    zlib-dev,
-    libnlohmann-json-dev,
-    libthreading-dev,
-    libpkgconf-dev
+    zlib1g-dev,
+    nlohmann-json3-dev,
+    pkg-config
 Description: Fixposition SDK
