@@ -9,7 +9,8 @@ Build-Depends: debhelper (>= 9.0.0),
     libeigen3-dev,
     zlib1g-dev,
     nlohmann-json3-dev,
-    pkg-config
+    pkg-config,
+    libssl-dev
 Homepage: 
 Standards-Version: 3.9.2
 
@@ -22,5 +23,6 @@ Depends: ${shlibs:Depends},
     libeigen3-dev,
     zlib1g-dev,
     nlohmann-json3-dev,
-    pkg-config
+    pkg-config,
+    libssl-dev
 Description: Fixposition SDK
