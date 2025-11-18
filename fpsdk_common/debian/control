@@ -4,7 +4,8 @@ Priority: optional
 Maintainer: Fixposition AG <support@fixposition.com>
 Build-Depends: debhelper (>= 9.0.0),
     ros-noetic-catkin,
-    libboost-all-dev,
+    libboost-stacktrace-dev,
+    libyaml-cpp-dev
 Homepage: 
 Standards-Version: 3.9.2
 
