@@ -36,7 +36,9 @@
  * - @subpage FPSDK_COMMON_PARSER_FPB
  * - @subpage FPSDK_COMMON_PARSER_NMEA
  * - @subpage FPSDK_COMMON_PARSER_NOVB
+ * - @subpage FPSDK_COMMON_PARSER_QGC
  * - @subpage FPSDK_COMMON_PARSER_RTCM3
+ * - @subpage FPSDK_COMMON_PARSER_SBF
  * - @subpage FPSDK_COMMON_PARSER_SPARTN
  * - @subpage FPSDK_COMMON_PARSER_UBX
  * - @subpage FPSDK_COMMON_PARSER_UNIB
@@ -71,7 +73,7 @@
  *
  *     // Add the chunk of data to the parser
  *     if (!parser.Add(data, size)) {
- *         // We added too much data! This will not happen if we don't add more than MAX_ANY_SIZE at a time.
+ *         // We added too much data! This only happens if we add more than MAX_ADD_SIZE at a time.
  *         WARNING(("Parser overflow!");
  *         parser.Reset();
  *         continue;
@@ -85,7 +87,7 @@
  * }
  *
  * // There may be some remaining data in the parser.
- * // If there is anytghing, we should see only type OTHER "messages" here.
+ * // If there is any data left, we should see only type OTHER "messages" here.
  * while (parser.Flush(msg)) {
  *     msg.MakeInfo();
  *     INFO("Message %s, size %d", msg.name_.c_str(), (int)msg.Size(), msg.info_.c_str());
@@ -105,32 +107,29 @@
  * Examples:
  *
  * - **FP_A**-NAME, e.g. `FP_A-ODOMETRY`, `FP_A-RAWIMU`. See fpsdk::common::parser::nmea::NmeaGetMessageName() for
- * details.
+ *   details.
  * - **FP_B**-NAME, e.g. `FP_B-SYSTEMSTATUS`, `FP_B-GNSSSTATUS`. See fpsdk::common::parser::fpb::FpbGetMessageName() for
- * details.
+ *   details.
  * - **NMEA**-TALKER-FORMATTER, e.g. `NMEA-GN-GGA`, `NMEA-GN-RMC`. See fpsdk::common::parser::nmea::NmeaGetMessageName()
- * for details.
+ *   for details.
  * - **UBX**-CLASS-MESSAGE, e.g. `UBX-NAV-PVT`, `UBX-RXM-RAWX`. See fpsdk::common::parser::ubx::UbxGetMessageName() for
- * details.
+ *   details.
  * - **RTCM3**-TYPENNNN, e.g. `RTCM3-TYPE1234`. See fpsdk::common::parser::rtcm3::Rtcm3GetMessageName() for details.
  * - **UNI_B**-NAME, .e.g. `UNI_B-VERSION`, `UNI_B-BESTNAV`. See fpsdk::common::parser::unib::UnibGetMessageName() for
- * details.
+ *   details.
  * - **NOV_B**-NAME, .e.g. `NOV_B-BESTGNSSPOS`, `NOV_B-RAWDMI`. See fpsdk::common::parser::novb::NovbGetMessageName()
- * for details.
+ *   for details.
  * - **SPARTN**-TYPE-SUBTYPE, e.g. `SPARTN-OCB-GPS`. See fpsdk::common::parser::spartn::SpartnGetMessageName() for
- * details.
+ *   details.
+ * - **SBF**-NAME, .e.g. `SBF-NAVCART`, `SBF-MEASEPOCH`. See fpsdk::common::parser::sbf::SbfGetMessageName()
+ *   for details.
+ * - **QGC**-GROUP-MESSAGE, e.g. `QGC-RAW-HASE6`. See fpsdk::common::parser::qgc::QgcGetMessageName() for
+ *   details.
  * - **OTHER** (there are no individual messages in this "protocol")
  *
  * @section FPSDK_COMMON_PARSER_DESIGN Design
  *
  * @image html parser.drawio.svg ""
- *
- * The parser implementation does not use any STL containers, templates or other c++ conveniences. Instead, low-level
- * c-like types are used, in order to prevent any expensive heap (re)allocation and too much copying of data. For
- * example, the returned ParserMsg contains a pointer to message rather than a std::vector<uint8_t>, and a const
- * char* message name instead of a std::string. Applications can convert (copy) these easily to std::vector resp.
- * std::string for further processing. Some of the utilities, such as fpsdk::common::parser::ubx::UbxMakeMessage(), do
- * use STL containers for convenience.
  *
  * The maximum message size for each protocol is limited. For example, while the FP_B frame meta data would allow for
  * messages up to 65'536 bytes, the parser discards any message larger than #fpsdk::common::parser::MAX_FP_B_SIZE.

@@ -24,7 +24,9 @@
 #include "fpsdk_common/parser/fpb.hpp"
 #include "fpsdk_common/parser/nmea.hpp"
 #include "fpsdk_common/parser/novb.hpp"
+#include "fpsdk_common/parser/qgc.hpp"
 #include "fpsdk_common/parser/rtcm3.hpp"
+#include "fpsdk_common/parser/sbf.hpp"
 #include "fpsdk_common/parser/spartn.hpp"
 #include "fpsdk_common/parser/types.hpp"
 #include "fpsdk_common/parser/ubx.hpp"
@@ -45,6 +47,8 @@ const char* ProtocolStr(const Protocol proto)
         case Protocol::RTCM3:  return PROTOCOL_NAME_RTCM3;
         case Protocol::UNI_B:  return PROTOCOL_NAME_UNI_B;
         case Protocol::NOV_B:  return PROTOCOL_NAME_NOV_B;
+        case Protocol::SBF:    return PROTOCOL_NAME_SBF;
+        case Protocol::QGC:    return PROTOCOL_NAME_QGC;
         case Protocol::SPARTN: return PROTOCOL_NAME_SPARTN;
         case Protocol::OTHER:  return PROTOCOL_NAME_OTHER;
     }  // clang-format on
@@ -63,6 +67,8 @@ Protocol StrProtocol(const char* name)
         else if (std::strcmp(name, PROTOCOL_NAME_RTCM3)  == 0) { return Protocol::RTCM3; }
         else if (std::strcmp(name, PROTOCOL_NAME_UNI_B)  == 0) { return Protocol::UNI_B; }
         else if (std::strcmp(name, PROTOCOL_NAME_NOV_B)  == 0) { return Protocol::NOV_B; }
+        else if (std::strcmp(name, PROTOCOL_NAME_SBF)    == 0) { return Protocol::SBF; }
+        else if (std::strcmp(name, PROTOCOL_NAME_QGC)    == 0) { return Protocol::QGC; }
         else if (std::strcmp(name, PROTOCOL_NAME_SPARTN) == 0) { return Protocol::SPARTN; }
     }  // clang-format on
     return Protocol::OTHER;
@@ -102,6 +108,12 @@ void ParserMsg::MakeInfo() const
             break;
         case Protocol::SPARTN:
             info_ = (spartn::SpartnGetMessageInfo(sinfo, sizeof(sinfo), mdata, msize) ? sinfo : "");
+            break;
+        case Protocol::SBF:
+            info_ = (sbf::SbfGetMessageInfo(sinfo, sizeof(sinfo), mdata, msize) ? sinfo : "");
+            break;
+        case Protocol::QGC:
+            info_ = (qgc::QgcGetMessageInfo(sinfo, sizeof(sinfo), mdata, msize) ? sinfo : "");
             break;
         case Protocol::OTHER: {
             // Info is a hexdump of the first few bytes
@@ -157,6 +169,14 @@ void ParserStats::Update(const ParserMsg& msg)
         case Protocol::NOV_B:
             n_novb_++;
             s_novb_ += size;
+            break;
+        case Protocol::SBF:
+            n_sbf_++;
+            s_sbf_ += size;
+            break;
+        case Protocol::QGC:
+            n_qgc_++;
+            s_qgc_ += size;
             break;
         case Protocol::SPARTN:
             n_spartn_++;
