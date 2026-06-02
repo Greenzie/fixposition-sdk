@@ -5,7 +5,7 @@ orbs:
   greenzie: greenzie/build_and_publish_debs@0.1.1
 
 parameters:
-  manual-bobcat-deploy:
+  manual-deploy:
     type: boolean
     default: false
 
@@ -13,7 +13,7 @@ parameters:
 workflows:
   version: 2
   pushbuild:
-    unless: << pipeline.parameters.manual-bobcat-deploy >>
+    unless: << pipeline.parameters.manual-deploy >>
     jobs:
       # Build jobs
       - greenzie/debian_build:
@@ -23,15 +23,8 @@ workflows:
           executor: greenzie/debianize_amd64
           clone_submodules: false
 
-      # - greenzie/debian_build:
-      #     context: GREENZIE
-      #     name: "arm64_debian_build"
-      #     platform: arm64
-      #     executor: greenzie/debianize_arm64
-      #     clone_submodules: true
-
   manualdeploy:
-    when: << pipeline.parameters.manual-bobcat-deploy >>
+    when: << pipeline.parameters.manual-deploy >>
     jobs:
       # Build jobs
       - greenzie/debian_build:
@@ -39,12 +32,6 @@ workflows:
           name: "amd_debian_build"
           platform: amd64
           executor: greenzie/debianize_amd64
-
-      # - greenzie/debian_build:
-      #     context: GREENZIE
-      #     name: "arm64_debian_build"
-      #     platform: arm64
-      #     executor: greenzie/debianize_arm64
 
       # Deployment jobs
       - greenzie/debian_deploy_experimental:
@@ -56,25 +43,3 @@ workflows:
                 - noetic
           requires:
             - amd_debian_build
-
-      # - greenzie/debian_deploy_experimental:
-      #     name: "deploy_arm64_greenzie"
-      #     context: GREENZIE
-      #     architecture: arm64
-      #     filters:
-      #       branches:
-      #         only:
-      #           - noetic
-      #     requires:
-      #       - arm64_debian_build
-
-      # - greenzie/debian_deploy_experimental:
-      #     context: GREENZIE
-      #     name: "deploy_all_bobcat"
-      #     server_hostname: bobcat
-      #     filters:
-      #       branches:
-      #         only:
-      #           - noetic
-      #     requires:
-      #       - arm64_debian_build
