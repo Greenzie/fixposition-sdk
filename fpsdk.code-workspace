@@ -222,14 +222,14 @@
         },
         "workbench.remoteIndicator.showExtensionRecommendations": true,
         "yaml.extension.recommendations": false,
+        "peacock.remoteColor": "#f9e64f",
         "workbench.colorCustomizations": {
             "commandCenter.border": "#15202b99",
             "titleBar.activeBackground": "#f9e64f",
             "titleBar.activeForeground": "#15202b",
             "titleBar.inactiveBackground": "#f9e64f99",
             "titleBar.inactiveForeground": "#15202b99"
-        },
-        "peacock.remoteColor": "#f9e64f"
+        }
     },
     "extensions": {
         "recommendations": [
@@ -319,6 +319,22 @@
                 "preLaunchTask" : "Fixposition SDK: build",
                 "program": "${workspaceFolder}/build/Debug/fpsdk_common/fpsdk_common_trafo_test",
                 "args": [ "-v", "-v", "-v", "-v" ],
+                "cwd": "${workspaceFolder}",
+                "setupCommands": [
+                    { "text": "set auto-load safe-path ${workspaceFolder}", "description": "", "ignoreFailures": true },
+                    { "text": "-enable-pretty-printing", "description": "enable pretty printing", "ignoreFailures": true },
+                    { "text": "handle SIGPIPE nostop noprint pass", "description": "ignore SIGPIPE", "ignoreFailures": true },
+                    { "text": "source ${workspaceFolder}/.devcontainer/.gdb/gdbinit", "description": "load local gdbinit", "ignoreFailures": false }
+                ]
+            },
+            {
+                "name": "Fixposition SDK: debug time_test",
+                "type": "cppdbg", "request": "launch", "MIMode": "gdb", "miDebuggerPath" : "gdb",
+                "stopAtEntry": false,
+                "preLaunchTask" : "Fixposition SDK: build",
+                "program": "${workspaceFolder}/build/Debug/fpsdk_common/fpsdk_common_time_test",
+                "args": [ // "--gtest_filter=TimeTest.SetUtcTime",
+                    "-v", "-v", "-v", "-v" ],
                 "cwd": "${workspaceFolder}",
                 "setupCommands": [
                     { "text": "set auto-load safe-path ${workspaceFolder}", "description": "", "ignoreFailures": true },

@@ -179,6 +179,10 @@ class ParserTool
 
     bool Run()
     {
+        opts_.LogVersion();
+
+        bool ok = true;
+
         // Print header
         if (!opts_.stdout_) {
             PrintMessageHeader();
@@ -192,7 +196,6 @@ class ParserTool
         }
 
         // Process all input files
-        bool ok = true;
         for (const auto& input_file : opts_.inputs_) {
             INFO("Reading from %s", input_file.c_str());
             std::ifstream input(input_file, std::ios::binary);
@@ -335,6 +338,8 @@ class ParserTool
         std::printf(fmt, ProtocolStr(Protocol::RTCM3),  s.n_rtcm3_,  (double)s.n_rtcm3_  * p_n, s.s_rtcm3_,  (double)s.s_rtcm3_  * p_s);
         std::printf(fmt, ProtocolStr(Protocol::NOV_B),  s.n_novb_,   (double)s.n_novb_   * p_n, s.s_novb_,   (double)s.s_novb_   * p_s);
         std::printf(fmt, ProtocolStr(Protocol::UNI_B),  s.n_unib_,   (double)s.n_unib_   * p_n, s.s_unib_,   (double)s.s_unib_   * p_s);
+        std::printf(fmt, ProtocolStr(Protocol::SBF),    s.n_sbf_,    (double)s.n_sbf_ *    p_n, s.s_sbf_,    (double)s.s_sbf_    * p_s);
+        std::printf(fmt, ProtocolStr(Protocol::QGC),    s.n_qgc_,    (double)s.n_qgc_ *    p_n, s.s_qgc_,    (double)s.s_qgc_    * p_s);
         std::printf(fmt, ProtocolStr(Protocol::SPARTN), s.n_spartn_, (double)s.n_spartn_ * p_n, s.s_spartn_, (double)s.s_spartn_ * p_s);
         std::printf(fmt, ProtocolStr(Protocol::OTHER),  s.n_other_,  (double)s.n_other_  * p_n, s.s_other_,  (double)s.s_other_  * p_s);
         // clang-format on

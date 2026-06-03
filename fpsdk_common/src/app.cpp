@@ -94,6 +94,67 @@ bool SigIntHelper::WaitAbort(const uint32_t millis)
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+static bool g_sigterm_abort = false;
+static bool g_sigterm_warn = false;
+static sighandler_t g_sigterm_old_handler = SIG_IGN;
+static fpsdk::common::thread::BinarySemaphore g_sigterm_sem;
+
+static void SigTermHandler(int signum)
+{
+    if ((signum == SIGTERM) && !g_sigterm_abort) {
+        if (g_sigterm_warn) {
+            WARNING("Caught SIGTERM, aborting...");
+        } else {
+            DEBUG("Caught SIGTERM, aborting...");
+        }
+        g_sigterm_abort = true;
+
+        // Handle signal only once, next time let the original handler deal with it
+        std::signal(SIGTERM, g_sigterm_old_handler == SIG_IGN ? SIG_DFL : g_sigterm_old_handler);
+        g_sigterm_old_handler = SIG_IGN;
+
+        g_sigterm_sem.Notify();
+    }
+}
+
+SigTermHelper::SigTermHelper(const bool warn)
+{
+    if (g_sigterm_old_handler == SIG_IGN) {
+        g_sigterm_old_handler = std::signal(SIGTERM, SigTermHandler);
+        g_sigterm_warn = warn;
+    }
+}
+
+SigTermHelper::~SigTermHelper()
+{
+    std::signal(SIGTERM, g_sigterm_old_handler == SIG_IGN ? SIG_DFL : g_sigterm_old_handler);
+    g_sigterm_sem.Notify();
+}
+
+bool SigTermHelper::ShouldAbort()
+{
+    return g_sigterm_abort;
+}
+
+bool SigTermHelper::WaitAbort(const uint32_t millis)
+{
+    // Wait with timeout
+    if (millis > 0) {
+        return g_sigterm_sem.WaitFor(millis) == thread::WaitRes::WOKEN;
+    }
+    // Wait forever
+    else {
+        while (true) {
+            if (g_sigterm_sem.WaitFor(1234) == thread::WaitRes::WOKEN) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
 static bool g_sigpipe_raised = false;
 static bool g_sigpipe_warn = false;
 static sighandler_t g_sigpipe_old_handler = SIG_IGN;
@@ -264,8 +325,8 @@ bool ProgramOptions::LoadFromArgv(int argc, char** argv)
         }
     }
 
-    // Setup debugging
-    if (logging_params_.level_ >= LoggingLevel::DEBUG) {
+    // Setup debugging. Set timestamps only if not yet set by user (through env variable)
+    if ((logging_params_.level_ >= LoggingLevel::DEBUG) && (logging_params_.timestamps_ == LoggingTimestamps::NONE)) {
         logging_params_.timestamps_ = LoggingTimestamps::RELATIVE;
     }
     LoggingSetParams(logging_params_);
@@ -299,22 +360,35 @@ bool ProgramOptions::CheckOptions(const std::vector<std::string>& /*args*/)
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-void ProgramOptions::PrintVersion()
-{
-    std::fprintf(stdout, "%s (%s, %s, %s)\n%s\n%s\n", app_name_.c_str(),
+static constexpr const char* BUILDSTR =
 #ifdef NDEBUG
-        "release",
+    "release";
 #else
-        "debug",
+    "debug";
 #endif
+static constexpr const char* ROSSTR =
 #if defined(FPSDK_USE_ROS1)
-        "ROS1",
+    "ROS1";
 #elif defined(FPSDK_USE_ROS2)
-        "ROS2",
+    "ROS2";
 #else
-        "no ROS",
+        "no ROS";
 #endif
-        utils::GetVersionString(), utils::GetCopyrightString(), utils::GetLicenseString());
+
+void ProgramOptions::PrintVersion() const
+{
+    std::fprintf(stdout, "%s%s%s (fpsdk: %s, %s, %s)\n%s\n%s\n", app_name_.c_str(), version_str_.empty() ? "" : " ",
+        version_str_.empty() ? "" : version_str_.c_str(), BUILDSTR, ROSSTR, utils::GetVersionString(),
+        copy_str_.empty() ? utils::GetCopyrightString() : copy_str_.c_str(),
+        lic_str_.empty() ? utils::GetLicenseString() : lic_str_.c_str());
+}
+
+void ProgramOptions::LogVersion() const
+{
+    INFO("%s%s%s (fpsdk: %s, %s, %s)\n%s\n%s\n", app_name_.c_str(), version_str_.empty() ? "" : " ",
+        version_str_.empty() ? "" : version_str_.c_str(), BUILDSTR, ROSSTR, utils::GetVersionString(),
+        copy_str_.empty() ? utils::GetCopyrightString() : copy_str_.c_str(),
+        lic_str_.empty() ? utils::GetLicenseString() : lic_str_.c_str());
 }
 
 /* ****************************************************************************************************************** */

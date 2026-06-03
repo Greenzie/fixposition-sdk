@@ -90,7 +90,7 @@ static constexpr uint64_t SecToNsec(const double sec)
  *
  * Time is monotonic time since first call to GetMillis() or GetSecs().
  *
- * @returns the number of milliseconds
+ * @returns the number of milliseconds (> 0)
  */
 uint64_t GetMillis();
 
@@ -718,6 +718,8 @@ class Time
 
     /**
      * @brief From GNSS time (atomic)
+     *
+     * See SetWnoTow() for details.
      *
      * @param[in]  wnotow  GNSS time
      *

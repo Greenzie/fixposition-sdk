@@ -33,7 +33,7 @@ namespace logging {
 
 static LoggingParams g_params;
 std::mutex g_mutex;
-static char g_line[0x1fff];
+static char g_line[0x1fff];  // 8 KiB
 static struct timespec g_time0 = { 0, 0 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -193,10 +193,17 @@ void LoggingDefaultWriteFn(const LoggingParams& params, const LoggingLevel level
         }
     }
 
+    // Colours come after the timestamp (unlike the journal markers, see above)
     if ((params.colour_ != LoggingColour::JOURNAL) && (prefix != NULL)) {
         len += std::snprintf(&output[len], sizeof(output) - len, "%s", prefix);
     }
+
+    // Up to this point len should surely be <<< sizeof(output).
+    // Add the actual log message.
     len += std::snprintf(&output[len], sizeof(output) - len, "%s", str);
+    // Now len may be > sizeof(output) (snprintf returns the number of bytes that would have been written if there was
+    // enough space).
+
     if (suffix != NULL) {
         // Truncate to accommodate suffix
         if (len >= sizeof(output)) {
@@ -225,7 +232,7 @@ LoggingParams::LoggingParams(
         const char* env_logging = std::getenv("FPSDK_LOGGING");
         if ((env_logging != nullptr) && (env_logging[0] != '\0')) {
             // Copy string and lower-case it
-            char words[1000];
+            char words[1000];  // FPSDK_LOGGING value up to this size. A value this large or larger is silly.
             std::snprintf(words, sizeof(words), "%s,", env_logging);
             std::transform(words, &words[std::strlen(words)], words, [](const char c) { return std::tolower(c); });
             for (char* word = std::strtok(words, ","); word != nullptr; word = std::strtok(nullptr, ",")) {
@@ -250,9 +257,10 @@ LoggingParams::LoggingParams(
         s_defaults_init = true;
     }
 
-    // User wants us to decide...
+    // User wants us to decide. INVOCATION_ID is set by systemd and part of every unit's environment.
     if (colour_ == LoggingColour::AUTO) {
-        colour_ = (isatty(fileno(stderr)) == 1 ? LoggingColour::YES : LoggingColour::NO);
+        colour_ = (isatty(fileno(stderr)) == 1 ? LoggingColour::YES :  // clang-format off
+            (std::getenv("INVOCATION_ID") != nullptr ? LoggingColour::JOURNAL : LoggingColour::NO));  // clang-format on
     }
 }
 
@@ -281,16 +289,27 @@ void LoggingPrint(const LoggingLevel level, const std::size_t repeat, const char
     }
     std::unique_lock<std::mutex> lock(g_mutex);
 
+    // Render log line
     va_list args;
     va_start(args, fmt);
-    int len = std::vsnprintf(g_line, sizeof(g_line), fmt, args);
+    std::size_t len = std::vsnprintf(g_line, sizeof(g_line), fmt, args);
     va_end(args);
 
+    constexpr std::size_t repeat_str_len = 20;
+    constexpr std::size_t trunc_str_len = 15;
+
+    // Ellipsis (line is longer than buffer size)
+    if (len > (sizeof(g_line) - trunc_str_len - repeat_str_len)) {
+        len = sizeof(g_line) - trunc_str_len - repeat_str_len;
+        len += std::snprintf(&g_line[len], sizeof(g_line) - len, "...<truncated>");
+    }
+
+    // Append repeat (truncate if there's no space left)
     if (repeat > 0) {
-        if (len > (int)(sizeof(g_line) - 10)) {
-            len -= 10;
+        if (len > (sizeof(g_line) - repeat_str_len)) {
+            len = sizeof(g_line) - repeat_str_len;
         }
-        std::snprintf(&g_line[len], sizeof(g_line) - len, " [%" PRIuMAX "x]", repeat);
+        len += std::snprintf(&g_line[len], sizeof(g_line) - len, " [%" PRIuMAX "x]", repeat);
     }
 
     g_params.fn_(g_params, level, g_line);
@@ -339,12 +358,40 @@ void LoggingHexdump(
             // clang-format on
             str[pos2] = isprint((int)c) ? c : '.';
         }
-        std::snprintf(
+        std::snprintf(  // This may truncate user data if e.g. prefix is extremely long, which would be silly.
             g_line, sizeof(g_line), "%s0x%04" PRIx64 " %05" PRIu64 "  %s", prefix != NULL ? prefix : "", ix, ix, str);
         g_params.fn_(g_params, level, g_line);
 
         ix += 16;
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+LoggingOstream::LoggingOstream(const LoggingLevel level) : str_{ &buf_ }
+{
+    buf_.level_ = level;
+}
+
+int LoggingOstream::StrBuf::sync()
+{
+    // Print each line
+    const auto& s = this->str();
+    std::size_t offs = 0;
+    std::size_t pos = 0;
+    while ((pos = s.find("\n", offs)) != std::string::npos) {
+        switch (level_) {  // clang-format off
+            case LoggingLevel::FATAL:   FATAL(  "%s", s.substr(offs, pos - offs).c_str()); break;
+            case LoggingLevel::ERROR:   ERROR(  "%s", s.substr(offs, pos - offs).c_str()); break;
+            case LoggingLevel::WARNING: WARNING("%s", s.substr(offs, pos - offs).c_str()); break;
+            case LoggingLevel::NOTICE:  NOTICE( "%s", s.substr(offs, pos - offs).c_str()); break;
+            case LoggingLevel::INFO:    INFO(   "%s", s.substr(offs, pos - offs).c_str()); break;
+            case LoggingLevel::DEBUG:   DEBUG(  "%s", s.substr(offs, pos - offs).c_str()); break;
+            case LoggingLevel::TRACE:   TRACE(  "%s", s.substr(offs, pos - offs).c_str()); break;
+            }  // clang-format on
+        offs = pos + 1;
+    }
+    return 0;
 }
 
 /* ****************************************************************************************************************** */
