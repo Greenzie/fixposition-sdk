@@ -78,9 +78,5 @@ workflows:
           context: GREENZIE
           repo_name: experimental-greenzie-public-focal-main
           channel: greenzie-public-experimental
-          filters:
-            branches:
-              only:
-                - noetic
           requires:
             - amd_debian_build
